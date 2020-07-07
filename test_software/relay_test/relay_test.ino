@@ -9,7 +9,7 @@
  * 
  */
 
-#define RELAY_PIN 11
+#define RELAY_PIN 10
 #define LED_PIN LED_BUILTIN
 
 void toogle_relay(int state)
