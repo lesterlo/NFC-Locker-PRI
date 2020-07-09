@@ -22,7 +22,7 @@ void toogle_relay(int state)
 void setup()
 {
     pinMode(RELAY_PIN, OUTPUT);
-    digitalWrite(RELAY_PIN, HIGH); //Disable the RELAY_PIN
+    digitalWrite(RELAY_PIN, LOW); //Disable the RELAY_PIN
 
     pinMode(LED_PIN, OUTPUT);
 }
