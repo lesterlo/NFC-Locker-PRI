@@ -11,7 +11,7 @@
 #include "pitches.h"
 
 
-#define BUZZER_PIN 11 //Use D11 PWM pin on Mega
+#define BUZZER_PIN 9 //Use D11 PWM pin on Mega
 #define LED_PIN LED_BUILTIN
 
 // notes in the melody:
