@@ -19,7 +19,7 @@
 
 // Program Start
 
-#include <MsTimer2.h>
+#include <TimerOne.h>
 #include <NSEncoder.h>
 
 //Display support
@@ -76,8 +76,10 @@ void setup() {
   // enc.setBtnHoldInterval(1000);
 
   //You must setup this timer to enable button monitoring
-  MsTimer2::set(enc.getBtnDebounceInterval(), isr_mstimer2); //Set 30 ms clock
-  MsTimer2::start();
+  Timer1.initialize(enc.getBtnDebounceInterval()*1000);
+  Timer1.attachInterrupt(isr_mstimer2); //Set 30 ms clock
+//  MsTimer2::set(enc.getBtnDebounceInterval(), isr_mstimer2); //Set 30 ms clock
+//  MsTimer2::start();
 }
 
 void loop() {
