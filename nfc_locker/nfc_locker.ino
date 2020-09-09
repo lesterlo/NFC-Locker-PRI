@@ -1,43 +1,21 @@
 /* 
-* Octopus Card Reader
+* NFC Locker (by Lester Lo)
 *
 *
 *
-* Modified "BUFFER_LENGTH" from 32 to 64
-* @ /Arduino.app/Contents/Java/hardware/arduino/avr/libraries/Wire/src/Wire.h
-* 
-* Modified "TWI_BUFFER_LENGTH" from 32 to 64
-* @ /Arduino.app/Contents/Java/hardware/arduino/avr/libraries/Wire/src/utility/twi.h
-* Ref:
-* 
 */
 
 // Program Parameter
 // #define CENSOR_MODE      //Disable showing Card Information
 #define SERIAL_OUTPUT       //Show the program status via USB Serial Console
-#define DISPLAY_MODE 2   //Show the program status via hardware display
-                            // Uncomment the line above to enable hardware display output
-                            // Set to "1" for SSD1306 OLED, "2 for" HD44780 LCD display
-
-
 
 //Include Header
 #include "program_setting.h"
 #include "octopus_setting.h"
 #include "message_data.h"
-#include <Arduino.h>
 
-#if defined(DISPLAY_MODE) && DISPLAY_MODE == 1
-#include <Wire.h>
-#include <Adafruit_GFX.h>
-#include <Adafruit_SSD1306.h>
-#elif defined(DISPLAY_MODE) && DISPLAY_MODE == 2
 #include <Wire.h> 
 #include <LiquidCrystal_I2C.h>
-#endif
-
-
-#include <Wire.h>
 #include <PN532_I2C.h>
 #include <PN532.h>
 #include <PN532_debug.h>
@@ -48,11 +26,7 @@ PN532_I2C pn532i2c(Wire);
 PN532 nfc(pn532i2c);
 
 // Display Declaration
-#if defined(DISPLAY_MODE) && DISPLAY_MODE == 1
-Adafruit_SSD1306 oled(128, 64, &Wire, -1);//OLED 128x64 No Reset Pin
-#elif defined(DISPLAY_MODE) && DISPLAY_MODE == 2
 LiquidCrystal_I2C lcd(0x27,20,4);  // set the LCD address to 0x27 for a 16 chars and 2 line display
-#endif
 
 //NFC global variable
 uint8_t        _prevIDm[8];
@@ -86,25 +60,11 @@ void setup(void)
   Serial.println(WORD_NFC_WELLCOME);
 #endif
 
-#if defined(DISPLAY_MODE) && DISPLAY_MODE == 1
-//Enable SSD1306 OLED Display
-  if(!oled.begin(SSD1306_SWITCHCAPVCC, 0x3C)) {
-  for(;;); // Don't proceed, loop forever
-  }
-  oled.setTextColor(SSD1306_WHITE); //Set to write Color
-  oled.clearDisplay();
-
-  oled.setCursor(0, 0);
-  oled.print(F(WORD_NFC_WELLCOME));
-  oled.display();
-  
-#elif defined(DISPLAY_MODE) && DISPLAY_MODE == 2
 //Enable HD44780 LCD Display
   lcd.init();
   lcd.setCursor(0, 0);
   lcd.print(WORD_NFC_WELLCOME);
   lcd.backlight();
-#endif
 
 //Start the NFC Module
   nfc.begin();
@@ -116,19 +76,10 @@ void setup(void)
     Serial.print(WORD_NFC_INI_ERROR);
 #endif
 
-#if defined(DISPLAY_MODE) && DISPLAY_MODE == 1
-// SSD1306 LCD Display
-  oled.setCursor(0, 10);
-  oled.print(F(WORD_NFC_INI_ERROR));
-  oled.display();
-#elif defined(DISPLAY_MODE) && DISPLAY_MODE == 2
 //HD44780 LCD Display
-  lcd.setCursor(0, 10);
-  lcd.print(WORD_NFC_INI_ERROR);
-#endif
-    while (1) {delay(10);};      // halt
+    lcd.setCursor(0, 10);
+    lcd.print(WORD_NFC_INI_ERROR);
   }
-
 //Print NFC Module data
   //Prepare data string
   String nfc_type = String(WORD_NFC_FOUND) + String(((versiondata >> 24) & 0xFF), HEX);
@@ -140,20 +91,10 @@ void setup(void)
   Serial.println(nfc_firmware);
 #endif
 
-#if defined(DISPLAY_MODE) && DISPLAY_MODE == 1
-  oled.setTextColor(SSD1306_WHITE);
-  oled.setCursor(0, 10);
-  oled.print(nfc_type);
-  //Print firmware version
-  oled.setCursor(0, 20);
-  oled.print(nfc_firmware);
-  oled.display();
-#elif defined(DISPLAY_MODE) && DISPLAY_MODE == 2
   lcd.setCursor(0, 1);
   lcd.print(nfc_type);
   lcd.setCursor(0, 2);
   lcd.print(nfc_firmware);
-#endif
 
   
 
@@ -166,11 +107,7 @@ void setup(void)
   memset(_prevIDm, 0, 8); //Clear the variable
 
   //Clean the display
-#if defined(DISPLAY_MODE) && DISPLAY_MODE == 1
-  oled.clearDisplay();
-#elif defined(DISPLAY_MODE) && DISPLAY_MODE == 2
   lcd.clear();
-#endif
 }
 
 void loop(void)
@@ -187,20 +124,12 @@ void loop(void)
 //Enable USB Serial
   Serial.print(WORD_NFC_WAIT_CARD);
 #endif
-#if defined(DISPLAY_MODE) && DISPLAY_MODE == 1
-  oled.fillRect(0, OLED_INFO_POSITION, 128, OLED_CLEAR_RANGE, BLACK); //Clear Display
-  oled.display();
-  oled.setTextSize(1);
-  oled.setCursor(0, OLED_INFO_POSITION);
-  oled.setTextColor(SSD1306_WHITE); //Show the display
-  oled.print(F(WORD_NFC_WAIT_CARD));
-  oled.display();
-#elif defined(DISPLAY_MODE) && DISPLAY_MODE == 2
+
   lcd.setCursor(0, 0);
   lcd.print(WORD_NULL_LINE); //Clean the line
   lcd.setCursor(0, 0);
   lcd.print(WORD_NFC_WAIT_CARD);
-#endif
+
 
   // Poll the Octopus card
   ret = nfc.felica_Polling(systemCode, requestCode, idm, pmm, &systemCodeResponse, 5000);  
@@ -253,21 +182,6 @@ void loop(void)
     Serial.println(felica_pmm);
 #endif
 
-#if defined(DISPLAY_MODE) && DISPLAY_MODE == 1
-  oled.fillRect(0, OLED_IDM_POSITION, 128, OLED_CLEAR_RANGE, BLACK); //Clear Display
-  oled.fillRect(0, OLED_PMM_POSITION, 128, OLED_CLEAR_RANGE, BLACK); //Clear Display
-  oled.display();
-
-  oled.setTextSize(1);
-  oled.setCursor(0, OLED_IDM_POSITION);
-  oled.setTextColor(SSD1306_WHITE); //Show the display
-  oled.print(String(WORD_FELICA_CARD_IDM)+felica_idm); //Print Card ID
-  oled.setCursor(0, OLED_PMM_POSITION);
-  oled.setTextColor(SSD1306_WHITE); //Show the display
-  oled.print(String(WORD_FELICA_CARD_PMM)+felica_pmm); //Print Card PM
-  oled.display();
-
-#elif defined(DISPLAY_MODE) && DISPLAY_MODE == 2
   lcd.setCursor(0, 2);
   lcd.print(WORD_NULL_LINE); //Clean the line
   lcd.setCursor(0, 3);
@@ -276,7 +190,7 @@ void loop(void)
   lcd.print(String(WORD_FELICA_CARD_IDM)+felica_idm); //Print Card ID
   lcd.setCursor(0, 3);
   lcd.print(String(WORD_FELICA_CARD_PMM)+felica_pmm); //Print Card PM
-#endif
+
 
 
 #if defined(SERIAL_OUTPUT)
@@ -302,8 +216,10 @@ void loop(void)
     if(ret == 1)
     {
         Serial.println(WORD_SUCESS_REQUEST);
-        ret = nfc.felica_ReadWithoutEncryption(1, serviceCodeList, 1, blockList, blockData);
 
+        /*
+        ret = nfc.felica_ReadWithoutEncryption(1, serviceCodeList, 1, blockList, blockData);
+      
         //Successful Read the balance
         if(ret == 1)
         {
@@ -334,25 +250,9 @@ void loop(void)
             Serial.println(print_balance);
 #endif
 
-#if defined(DISPLAY_MODE) && DISPLAY_MODE == 1
-            oled.fillRect(0, OLED_INFO_POSITION, 128, OLED_CLEAR_RANGE, BLACK); //Clear Display
-            oled.fillRect(0, OLED_BAL_POSITION, 128, OLED_CLEAR_RANGE*3, BLACK); //Clear Display
-            oled.display();
-            //Print Successful Message
-            oled.setTextSize(1);
-            oled.setCursor(0, OLED_INFO_POSITION);
-            oled.setTextColor(SSD1306_WHITE); //Show the display
-            oled.print(F(WORD_SUCESS_READ_BALANCE));
-            //Print Balance
-            oled.setTextSize(3);
-            oled.setCursor(0, OLED_BAL_POSITION);
-            oled.setTextColor(SSD1306_WHITE); //Show the display
-            oled.print(print_balance);
-            oled.display();
-#elif defined(DISPLAY_MODE) && DISPLAY_MODE == 2
+
             lcd.setCursor(0, 1);
             lcd.print(WORD_SUCESS_PRINT_BALANCE+print_balance);
-#endif
         }
         //Cannot Read Balance
         else
@@ -360,23 +260,14 @@ void loop(void)
 #if defined(SERIAL_OUTPUT)
             Serial.println(WORD_ERR_READ_BALANCE);
 #endif
-
-#if defined(DISPLAY_MODE) && DISPLAY_MODE == 1
-            oled.fillRect(0, OLED_INFO_POSITION, 128, OLED_CLEAR_RANGE, BLACK); //Clear Display
-            oled.display();
-
-            oled.setTextSize(1);
-            oled.setCursor(0, OLED_INFO_POSITION);
-            oled.setTextColor(SSD1306_WHITE);
-            oled.print(F(WORD_ERR_READ_BALANCE));
-            oled.display();
-#elif defined(DISPLAY_MODE) && DISPLAY_MODE == 2
+        //LCD job
             lcd.setCursor(0, 1);
             lcd.print(WORD_NULL_LINE); //Clean the line
             lcd.setCursor(0, 1);
             lcd.print(WORD_ERR_READ_BALANCE);
-#endif
         }
+
+        */
     }
     //Fail to request Service
     else
@@ -384,22 +275,11 @@ void loop(void)
 #if defined(SERIAL_OUTPUT)
       Serial.println(WORD_ERR_REQUEST);
 #endif
-
-#if defined(DISPLAY_MODE) && DISPLAY_MODE == 1 
-            oled.fillRect(0, OLED_INFO_POSITION, 128, OLED_CLEAR_RANGE, BLACK); //Clear Display
-            oled.display();
-
-            oled.setTextSize(1);
-            oled.setCursor(0, OLED_INFO_POSITION);
-            oled.setTextColor(SSD1306_WHITE);
-            oled.print(F(WORD_ERR_REQUEST));
-            oled.display();
-#elif defined(DISPLAY_MODE) && DISPLAY_MODE == 2
+      //LCD Jobs
             lcd.setCursor(0, 1);
             lcd.print(WORD_NULL_LINE); //Clean the line
             lcd.setCursor(0, 1);
             lcd.print(WORD_ERR_REQUEST);
-#endif
     }
 
     //Finish Reading, Release the card    
