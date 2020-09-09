@@ -253,6 +253,6 @@ void loop(void)
 #if defined(SERIAL_OUTPUT)
     Serial.println(WORD_PROCEDURE_FINISH);
 #endif
-    delay(1000);
+    delay(LOOP_DELAY_INTERVAL);
   }
 }
