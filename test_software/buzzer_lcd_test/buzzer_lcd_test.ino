@@ -14,7 +14,7 @@
 #include <hd44780ioClass/hd44780_I2Cexp.h> // i2c expander i/o class header
 
 
-#define BUZZER_PIN 9 //Use D11 PWM pin on Mega
+#define BUZZER_PIN 9 //Use D9 PWM pin on Mega
 #define LED_PIN LED_BUILTIN
 
 // notes in the melody:
