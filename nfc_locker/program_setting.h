@@ -1,6 +1,10 @@
 #ifndef PROGRAM_SETTING_H_
 #define PROGRAM_SETTING_H_
 
+
+enum State{LOCKER_CLOSED, LOCKER_OPENED};
+
+
 //Program Constant
 #define LOOP_DELAY_INTERVAL 1000
 

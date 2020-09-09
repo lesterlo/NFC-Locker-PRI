@@ -22,6 +22,7 @@
 #include <PN532.h>
 #include <PN532_debug.h>
 
+State sys_state = LOCKER_CLOSED;
 
 // NFC Declaration
 PN532_I2C pn532i2c(Wire);
@@ -55,6 +56,18 @@ String convByteToString(const uint8_t* data, uint8_t length)
   return return_value;
 }
 
+//Helper Function
+bool check_door()
+{
+  //Return True if door is opened, false closed
+
+  if(digitalRead(DOOR_SWITCH_PIN)==HIGH)
+    return true; //Door Opened
+  else
+    return false; //Door closed
+}
+
+//ISR Function
 void isr_encoder()
 {
   enc.btn_task();
@@ -124,6 +137,26 @@ void setup(void)
 
   //Clean the display
   lcd.clear();
+
+
+
+  //Set update the locker State
+  //Closed? opened?
+  if(check_door())
+  {
+#if defined(SERIAL_OUTPUT)
+  Serial.println(WORD_LOCKER_DOOR_OPENED);
+#endif
+    sys_state = LOCKER_OPENED;
+  }
+  else
+  {
+#if defined(SERIAL_OUTPUT)
+  Serial.println(WORD_LOCKER_DOOR_CLOSED);
+#endif
+    sys_state = LOCKER_CLOSED;
+  }
+  
 }
 
 void loop(void)

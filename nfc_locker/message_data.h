@@ -1,6 +1,9 @@
 #ifndef MESSAGE_DATA_H_
 #define MESSAGE_DATA_H_
 
+#define WORD_LOCKER_DOOR_OPENED     "Door Opened"
+#define WORD_LOCKER_DOOR_CLOSED     "Door Closed"
+
 #define WORD_NULL_LINE              "                    "
 #define WORD_NFC_WELLCOME           "Octopus Card Reader"
 #define WORD_NFC_INI_ERROR          "No NFC Module"
