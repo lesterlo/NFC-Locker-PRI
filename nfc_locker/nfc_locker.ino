@@ -16,6 +16,8 @@
 
 #include <Wire.h> 
 #include <LiquidCrystal_I2C.h>
+#include <TimerOne.h>
+#include <NSEncoder.h>
 #include <PN532_I2C.h>
 #include <PN532.h>
 #include <PN532_debug.h>
@@ -27,6 +29,9 @@ PN532 nfc(pn532i2c);
 
 // Display Declaration
 LiquidCrystal_I2C lcd(0x27,20,4);  // set the LCD address to 0x27 for a 16 chars and 2 line display
+
+//Encoder
+NSEncoder_btn enc(ENCODER_S1_PIN, ENCODER_S2_PIN, ENCODER_KEY_PIN, 4, true);
 
 //NFC global variable
 uint8_t        _prevIDm[8];
@@ -50,6 +55,11 @@ String convByteToString(const uint8_t* data, uint8_t length)
   return return_value;
 }
 
+void isr_encoder()
+{
+  enc.btn_task();
+}
+
 void setup(void)
 {
 //Enable Required Hardware module and show welcome message
@@ -65,6 +75,10 @@ void setup(void)
   lcd.setCursor(0, 0);
   lcd.print(WORD_NFC_WELLCOME);
   lcd.backlight();
+
+//Start Encoder
+  Timer1.initialize(enc.getBtnDebounceInterval()*1000);
+  Timer1.attachInterrupt(isr_encoder); //Set 30 ms clock
 
 //Start the NFC Module
   nfc.begin();
@@ -96,15 +110,17 @@ void setup(void)
   lcd.setCursor(0, 2);
   lcd.print(nfc_firmware);
 
-  
-
   // Set the max number of retry attempts to read from a card
   // This prevents us from waiting forever for a card, which is
   // the default behaviour of the PN532.
   nfc.setPassiveActivationRetries(0xFF);
   nfc.SAMConfig();
 
-  memset(_prevIDm, 0, 8); //Clear the variable
+  memset(_prevIDm, 0, 8); //Clear NFC variable
+
+//Setup Hardware Pin
+  pinMode(DOOR_SWITCH_PIN, INPUT);
+  pinMode(DOOR_LOCK_PIN, OUTPUT);
 
   //Clean the display
   lcd.clear();
