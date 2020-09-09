@@ -215,59 +215,9 @@ void loop(void)
     ret = nfc.felica_RequestService(1, serviceCodeList, returnKey); //Request the [fix the ]
     if(ret == 1)
     {
+#if defined(SERIAL_OUTPUT)
         Serial.println(WORD_SUCESS_REQUEST);
-
-        /*
-        ret = nfc.felica_ReadWithoutEncryption(1, serviceCodeList, 1, blockList, blockData);
-      
-        //Successful Read the balance
-        if(ret == 1)
-        {
-            String print_balance = "$";
-            int32_t balance = 0;
-            int16_t upper_bal = 0;
-            int16_t lower_bal = 0;
-
-            //Process the balance from block data
-            for(int i=0;i<4;i++) {
-                balance<<=8;
-                balance|=blockData[0][i];  
-            }
-            //Offset the balance
-            balance = balance - OCTOPUS_BALANCE_OFFSET;
-            if (balance<0) {
-                print_balance+="-";
-                balance=-balance;
-            }
-            //Prepare balance String object
-            print_balance+=((balance - (balance % 10))/10);
-            print_balance+=".";
-            print_balance+=(balance % 10); 
-            
-#if defined(SERIAL_OUTPUT)
-            Serial.println(WORD_SUCESS_READ_BALANCE);
-            Serial.print(WORD_SUCESS_PRINT_BALANCE);
-            Serial.println(print_balance);
 #endif
-
-
-            lcd.setCursor(0, 1);
-            lcd.print(WORD_SUCESS_PRINT_BALANCE+print_balance);
-        }
-        //Cannot Read Balance
-        else
-        {
-#if defined(SERIAL_OUTPUT)
-            Serial.println(WORD_ERR_READ_BALANCE);
-#endif
-        //LCD job
-            lcd.setCursor(0, 1);
-            lcd.print(WORD_NULL_LINE); //Clean the line
-            lcd.setCursor(0, 1);
-            lcd.print(WORD_ERR_READ_BALANCE);
-        }
-
-        */
     }
     //Fail to request Service
     else
