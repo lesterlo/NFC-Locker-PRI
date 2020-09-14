@@ -2,6 +2,8 @@
 
 #define WORD_LOCKER_DOOR_OPENED     "Door Opened"
 #define WORD_LOCKER_DOOR_CLOSED     "Door Closed"
+#define WORD_LOCKER_DOOR_OPENING    "Door Opening"
+#define WORD_LOCKER_DOOR_CLOSING    "Door Closing"
 
 #define WORD_NULL_LINE              "                    "
 #define WORD_NFC_WELLCOME           "Octopus Card Reader"

@@ -27,6 +27,8 @@
 //Global variable Declaration
 State sys_state = LOCKER_CLOSED;
 
+unsigned long card_read_prev_time = 0;
+
 // NFC Declaration
 PN532_I2C pn532i2c(Wire);
 PN532 nfc(pn532i2c);
@@ -74,6 +76,7 @@ void open_door()
 {
   Timer3.attachInterrupt(isr_doorM); 
   digitalWrite(DOOR_LOCK_PIN, HIGH);//turn the power signal ON, Open the door
+  digitalWrite(LED_BUILTIN, HIGH);
   Timer3.initialize(1000 * 1000); //start timer, 100ms clock (100*1000)   
 }
 
@@ -86,6 +89,7 @@ void isr_encoder() //A encoder ISR
 void isr_doorM() //A door management ISR
 {
   digitalWrite(DOOR_LOCK_PIN, LOW); //deactive the Power signal, turn it off
+  digitalWrite(LED_BUILTIN, LOW);
   Timer3.stop(); //Stop the timer itself
 }
 
@@ -155,12 +159,13 @@ void setup(void)
 
   //Start Door Relay Module
   pinMode(DOOR_LOCK_PIN, OUTPUT);
+  pinMode(LED_BUILTIN, OUTPUT);
   digitalWrite(DOOR_LOCK_PIN, LOW); //Disable the DOOR_LOCK_PIN
 
   //Clean the display
   lcd.clear();
 
-
+/*
 
   //Set update the locker State
   //Closed? opened?
@@ -178,7 +183,7 @@ void setup(void)
 #endif
     sys_state = LOCKER_CLOSED;
   }
-  
+  */
 }
 
 void loop(void)
@@ -198,20 +203,73 @@ void loop(void)
       uint8_t pmm[8];
       uint16_t systemCodeResponse;
 
+      lcd.setCursor(0, 0);
+      lcd.print(WORD_NULL_LINE); //Clean the line
+      lcd.setCursor(0, 0);
+      lcd.print(WORD_LOCKER_DOOR_CLOSED);
+
+      if((millis() - card_read_prev_time) > OCTOPUS_PROCESSING_INTERVAL)
+      {
+        Serial.println("Ready to read NFC Card");
+        //Read NFC tag
+        ret = nfc.felica_Polling(systemCode, requestCode, idm, pmm, &systemCodeResponse, 5000); 
+
+        //Found an Octopus Card
+        if (ret == 1)
+        {
+          uint16_t serviceCodeList[1];
+          uint16_t returnKey[1];
+          uint16_t blockList[1];
 
 
-      //Read NFC tag
-      ret = nfc.felica_Polling(systemCode, requestCode, idm, pmm, &systemCodeResponse, 5000); 
+          serviceCodeList[0]=OCTOPUS_BALANCE_SERVICE_CODE;
+          blockList[0] = OCTOPUS_BALANCE_SERVICE_BLOCK;
+          //Request the Service, Read Balance
+    // if Omit Request procedure, octopus on Apple Pay cannot complete the reading process until Timeout
+        ret = nfc.felica_RequestService(1, serviceCodeList, returnKey); 
+  #if defined(SERIAL_OUTPUT)
+          Serial.println(WORD_FELICA_FOUND);
+  #endif
 
+          /*
+          //Find Same card id
+      if ( memcmp(idm, _prevIDm, 8) == 0 ) 
+      {
+          //Not yet timeout, then skip processing
+          if ( (millis() - _prevTime) < OCTOPUS_SAME_CARD_TIMEOUT ) 
+          {
+  #if defined(SERIAL_OUTPUT)
+          Serial.println(WORD_FELICA_SAME);
+  #endif
+          delay(500);
+          return;
+          }
+      }
+      */
+          //If the card ID is match
+          sys_state = LOCKER_OPENING; //Transit the State to closed
+      
+          //After reading a NFC card
+          ret = nfc.felica_Release(); 
+        }
+
+        //Update the last card reading time
+      card_read_prev_time = millis();
+      }   
     }
     break;
 
     //2.b State:LOCKER_OPENED
     //Active when the Locker is Opened
     case LOCKER_OPENED:
+      lcd.setCursor(0, 0);
+      lcd.print(WORD_NULL_LINE); //Clean the line
+      lcd.setCursor(0, 0);
+      lcd.print(WORD_LOCKER_DOOR_OPENED);
 
-      //Count opened time
-      //Start beep 
+
+      //TODO: Count opened time
+      //TODO: IF excess -> Start beep 
       
       //Transit state when the door is closed
       if(!check_door()) //Return the door is closed
@@ -222,14 +280,47 @@ void loop(void)
         //turn off beep sound
 
 
-        sys_state = LOCKER_CLOSED; //Transit the State to closed
+        sys_state = LOCKER_CLOSING; //Transit the State to closed
       }
+    break;
+
+    case LOCKER_OPENING:
+      lcd.setCursor(0, 0);
+      lcd.print(WORD_NULL_LINE); //Clean the line
+      lcd.setCursor(0, 0);
+      lcd.print(WORD_LOCKER_DOOR_OPENING);
+
+      open_door(); //Trigger Open door
+
+    //   if(!check_door()) //The door still close
+    //   {
+    // #if defined(SERIAL_OUTPUT)
+    //   Serial.println(WORD_LOCKER_DOOR_CLOSED);
+    // #endif
+    //   }
+    //   else
+    //   {
+        sys_state = LOCKER_OPENED;//Transit state to OPENED
+      // }
+    break;
+
+    case LOCKER_CLOSING:
+      lcd.setCursor(0, 0);
+      lcd.print(WORD_NULL_LINE); //Clean the line
+      lcd.setCursor(0, 0);
+      lcd.print(WORD_LOCKER_DOOR_CLOSING);
+
+      //
+
+      sys_state = LOCKER_CLOSED;//Transit state to CLOSED
     break;
   }
 
-
+  //Update time counter
+  
 }
 
+/*
 void loop2(void)
 {
   uint8_t ret;
@@ -252,7 +343,7 @@ void loop2(void)
 
 
   // Poll the Octopus card
-  ret = nfc.felica_Polling(systemCode, requestCode, idm, pmm, &systemCodeResponse, 5000);  
+  ret = nfc.felica_Polling(systemCode, requestCode, idm, pmm, &systemCodeResponse, 1000);  
 
   //Cannot find an Octopus Card
   if (ret != 1)
@@ -373,6 +464,8 @@ void loop2(void)
 #if defined(SERIAL_OUTPUT)
     Serial.println(WORD_PROCEDURE_FINISH);
 #endif
-    delay(OCTOPUS_READ_INTERVAL);
+    delay(OCTOPUS_PROCESSING_INTERVAL);
   }
 }
+
+*/
