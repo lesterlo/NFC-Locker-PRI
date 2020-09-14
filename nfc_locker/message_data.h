@@ -1,5 +1,4 @@
-#ifndef MESSAGE_DATA_H_
-#define MESSAGE_DATA_H_
+#pragma once 
 
 #define WORD_LOCKER_DOOR_OPENED     "Door Opened"
 #define WORD_LOCKER_DOOR_CLOSED     "Door Closed"
@@ -26,5 +25,3 @@
 #define WORD_FAIL_RELEASE_CARD      "Failed to release Card"
 #define WORD_FAIL_RELEASE_CARD      "Failed to release Card"
 #define WORD_PROCEDURE_FINISH       "Card access completed!\n\n"
-
-#endif

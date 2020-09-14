@@ -183,6 +183,55 @@ void setup(void)
 
 void loop(void)
 {
+  //Setup variable
+  
+  switch(sys_state)
+  {
+    //2.a State:LOCKER_CLOSED
+    //Active when the Locker is Closed
+    case LOCKER_CLOSED:
+    {
+      uint8_t ret;
+      uint16_t systemCode = OCTOPUS_SYSTEM_CODE;
+      uint8_t requestCode = OCTOPUS_REQUEST_CODE;       // System Code request
+      uint8_t idm[8];
+      uint8_t pmm[8];
+      uint16_t systemCodeResponse;
+
+
+
+      //Read NFC tag
+      ret = nfc.felica_Polling(systemCode, requestCode, idm, pmm, &systemCodeResponse, 5000); 
+
+    }
+    break;
+
+    //2.b State:LOCKER_OPENED
+    //Active when the Locker is Opened
+    case LOCKER_OPENED:
+
+      //Count opened time
+      //Start beep 
+      
+      //Transit state when the door is closed
+      if(!check_door()) //Return the door is closed
+      {
+    #if defined(SERIAL_OUTPUT)
+      Serial.println(WORD_LOCKER_DOOR_CLOSED);
+    #endif
+        //turn off beep sound
+
+
+        sys_state = LOCKER_CLOSED; //Transit the State to closed
+      }
+    break;
+  }
+
+
+}
+
+void loop2(void)
+{
   uint8_t ret;
   uint16_t systemCode = OCTOPUS_SYSTEM_CODE;
   uint8_t requestCode = OCTOPUS_REQUEST_CODE;       // System Code request
@@ -324,6 +373,6 @@ void loop(void)
 #if defined(SERIAL_OUTPUT)
     Serial.println(WORD_PROCEDURE_FINISH);
 #endif
-    delay(LOOP_DELAY_INTERVAL);
+    delay(OCTOPUS_READ_INTERVAL);
   }
 }

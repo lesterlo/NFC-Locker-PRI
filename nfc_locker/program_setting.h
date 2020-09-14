@@ -1,12 +1,11 @@
-#ifndef PROGRAM_SETTING_H_
-#define PROGRAM_SETTING_H_
+#pragma once 
 
 
 enum State{LOCKER_CLOSED, LOCKER_OPENED};
 
 
 //Program Constant
-#define LOOP_DELAY_INTERVAL 1000
+#define OCTOPUS_READ_INTERVAL 1000
 
 
 
@@ -21,4 +20,3 @@ enum State{LOCKER_CLOSED, LOCKER_OPENED};
 
 #define DOOR_SWITCH_PIN 47
 
-#endif
