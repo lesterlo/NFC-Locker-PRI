@@ -17,11 +17,14 @@
 #include <Wire.h> 
 #include <LiquidCrystal_I2C.h>
 #include <TimerOne.h>
+#include <TimerThree.h>
 #include <NSEncoder.h>
 #include <PN532_I2C.h>
 #include <PN532.h>
 #include <PN532_debug.h>
 
+
+//Global variable Declaration
 State sys_state = LOCKER_CLOSED;
 
 // NFC Declaration
@@ -67,10 +70,23 @@ bool check_door()
     return false; //Door closed
 }
 
+void open_door()
+{
+  Timer3.attachInterrupt(isr_doorM); 
+  digitalWrite(DOOR_LOCK_PIN, HIGH);//turn the power signal ON, Open the door
+  Timer3.initialize(1000 * 1000); //start timer, 100ms clock (100*1000)   
+}
+
 //ISR Function
-void isr_encoder()
+void isr_encoder() //A encoder ISR
 {
   enc.btn_task();
+}
+
+void isr_doorM() //A door management ISR
+{
+  digitalWrite(DOOR_LOCK_PIN, LOW); //deactive the Power signal, turn it off
+  Timer3.stop(); //Stop the timer itself
 }
 
 void setup(void)
@@ -83,7 +99,7 @@ void setup(void)
   Serial.println(WORD_NFC_WELLCOME);
 #endif
 
-//Enable HD44780 LCD Display
+//Start HD44780 LCD Display
   lcd.init();
   lcd.setCursor(0, 0);
   lcd.print(WORD_NFC_WELLCOME);
@@ -103,11 +119,12 @@ void setup(void)
     Serial.print(WORD_NFC_INI_ERROR);
 #endif
 
-//HD44780 LCD Display
+  //HD44780 LCD Display
     lcd.setCursor(0, 10);
     lcd.print(WORD_NFC_INI_ERROR);
   }
-//Print NFC Module data
+
+//Print NFC Module data For Debug
   //Prepare data string
   String nfc_type = String(WORD_NFC_FOUND) + String(((versiondata >> 24) & 0xFF), HEX);
   String nfc_firmware = String(WORD_NFC_SHOW_FIRMWARE) + String(((versiondata >> 16) & 0xFF), DEC) + String(".") + String(((versiondata >> 8) & 0xFF), DEC);
@@ -118,6 +135,7 @@ void setup(void)
   Serial.println(nfc_firmware);
 #endif
 
+  //Print the nfc data on LCD 
   lcd.setCursor(0, 1);
   lcd.print(nfc_type);
   lcd.setCursor(0, 2);
@@ -134,6 +152,10 @@ void setup(void)
 //Setup Hardware Pin
   pinMode(DOOR_SWITCH_PIN, INPUT);
   pinMode(DOOR_LOCK_PIN, OUTPUT);
+
+  //Start Door Relay Module
+  pinMode(DOOR_LOCK_PIN, OUTPUT);
+  digitalWrite(DOOR_LOCK_PIN, LOW); //Disable the DOOR_LOCK_PIN
 
   //Clean the display
   lcd.clear();
