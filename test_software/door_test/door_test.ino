@@ -8,13 +8,15 @@
  * !! According to the spec of YF591S lock, the the unlock power 
  * should apply around 100ms, DON'T apply more than 200ms. !!
  * 
+ * !! Do NOT use delay() on main loop()
+ * 
  * Program tested on Arduino Mega 2560
  * 
  */
 
 #include <NSEncoder.h>
 #include <TimerOne.h>
-#include <TimerThree.h>
+#include <Ticker.h>
 
 #define RELAY_PIN 10
 #define LED_PIN LED_BUILTIN
@@ -27,6 +29,9 @@
 NSEncoder_btn enc(ENCODER_S1_PIN, ENCODER_S2_PIN, ENCODER_KEY_PIN, 4, false);
 
 
+void isr_doorM();
+Ticker door_ticker(isr_doorM, 100, 1, MILLIS);
+
 //isr
 void isr_encoder()
 {
@@ -36,20 +41,22 @@ void isr_encoder()
 void isr_doorM()
 {
     digitalWrite(RELAY_PIN, LOW); //deactive the Power signal, turn it off
-    Timer3.stop(); //Stop the timer itself
+    digitalWrite(LED_PIN, LOW);
 }
 
 void open_door()
 {
-    Timer3.attachInterrupt(isr_doorM); 
-    digitalWrite(RELAY_PIN, HIGH);//turn the power signal ON, Open the door
-    Timer3.initialize(1000 * 1000); //start timer, 100ms clock (100*1000)   
+    digitalWrite(RELAY_PIN, HIGH);//turn the power signal ON, Open the door  
+    digitalWrite(LED_PIN, HIGH);
+
+    door_ticker.start();
 }
 
 void setup()
 {
     Serial.begin(115200);
 
+    pinMode(LED_PIN, OUTPUT);
     pinMode(RELAY_PIN, OUTPUT);
     digitalWrite(RELAY_PIN, LOW); //Disable the RELAY_PIN
 
@@ -61,6 +68,11 @@ void setup()
 
 void loop()
 {
+    //Ticker jobs
+    door_ticker.update();
+
+
+    //Check Button Status
     NSEncoder_btn::BTN_STATE enc_btn;
     enc_btn = enc.get_Button();
     switch(enc_btn)
