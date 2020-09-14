@@ -17,7 +17,7 @@
 #include <Wire.h> 
 #include <LiquidCrystal_I2C.h>
 #include <TimerOne.h>
-#include <TimerThree.h>
+#include <Ticker.h>
 #include <NSEncoder.h>
 #include <PN532_I2C.h>
 #include <PN532.h>
@@ -28,6 +28,11 @@
 State sys_state = LOCKER_CLOSED;
 
 unsigned long card_read_prev_time = 0;
+
+
+void isr_doorM();
+//Ticker
+Ticker door_ticker(isr_doorM, 100, 1, MILLIS);
 
 // NFC Declaration
 PN532_I2C pn532i2c(Wire);
@@ -74,10 +79,17 @@ bool check_door()
 
 void open_door()
 {
-  Timer3.attachInterrupt(isr_doorM); 
+#if defined(SERIAL_OUTPUT)
+  Serial.println("Open The Door");
+#endif
+
   digitalWrite(DOOR_LOCK_PIN, HIGH);//turn the power signal ON, Open the door
   digitalWrite(LED_BUILTIN, HIGH);
-  Timer3.initialize(1000 * 1000); //start timer, 100ms clock (100*1000)   
+  // Timer4.initialize(1000*1000); //start timer, 100ms clock (100*1000)
+  // Timer4.attachInterrupt(isr_doorM); 
+  // Timer4.start();
+
+  door_ticker.start();
 }
 
 //ISR Function
@@ -90,7 +102,7 @@ void isr_doorM() //A door management ISR
 {
   digitalWrite(DOOR_LOCK_PIN, LOW); //deactive the Power signal, turn it off
   digitalWrite(LED_BUILTIN, LOW);
-  Timer3.stop(); //Stop the timer itself
+  // Timer4.stop(); //Stop the timer itself
 }
 
 void setup(void)
@@ -188,7 +200,13 @@ void setup(void)
 
 void loop(void)
 {
+  //Update Ticker
+  door_ticker.update();
+
+
   //Setup variable
+
+
   
   switch(sys_state)
   {
