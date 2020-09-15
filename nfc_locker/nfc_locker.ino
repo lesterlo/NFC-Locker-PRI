@@ -27,6 +27,7 @@
 //Global variable Declaration
 State sys_state = LOCKER_CLOSED;
 State prev_sys_state;
+bool lcd_update_flag = true;
 
 unsigned long card_read_prev_time = 0;
 
@@ -97,6 +98,8 @@ void transit_state(State in_state)
 {
   prev_sys_state = sys_state;
   sys_state = in_state;
+
+  lcd_update_flag = true; //Set the update flag once transit state
 }
 
 //ISR Function
@@ -184,9 +187,10 @@ void setup(void)
   //Clean the display
   lcd.clear();
 
-/*
+/* TODO: Disable this to bypass the state checking on startup
+  uncommnet it after testing
 
-  //Set update the locker State
+  //Update the locker State on startup
   //Closed? opened?
   if(check_door())
   {
@@ -228,14 +232,22 @@ void loop(void)
       uint8_t pmm[8];
       uint16_t systemCodeResponse;
 
-      lcd.setCursor(0, 0);
-      lcd.print(WORD_NULL_LINE); //Clean the line
-      lcd.setCursor(0, 0);
-      lcd.print(WORD_LOCKER_DOOR_CLOSED);
+      if(lcd_update_flag)
+      {
+        lcd.setCursor(0, 0);
+        lcd.print(WORD_NULL_LINE); //Clean the line
+        lcd.setCursor(0, 0);
+        lcd.print(WORD_LOCKER_DOOR_CLOSED);
+
+        lcd_update_flag = false;
+      }
 
       if((millis() - card_read_prev_time) > OCTOPUS_PROCESSING_INTERVAL)
       {
+
+  #if defined(SERIAL_OUTPUT)
         Serial.println("Ready to read NFC Card");
+  #endif
         //Read NFC tag
         ret = nfc.felica_Polling(systemCode, requestCode, idm, pmm, &systemCodeResponse, 5000); 
 
@@ -249,9 +261,10 @@ void loop(void)
 
           serviceCodeList[0]=OCTOPUS_BALANCE_SERVICE_CODE;
           blockList[0] = OCTOPUS_BALANCE_SERVICE_BLOCK;
-          //Request the Service, Read Balance
-    // if Omit Request procedure, octopus on Apple Pay cannot complete the reading process until Timeout
-        ret = nfc.felica_RequestService(1, serviceCodeList, returnKey); 
+
+        ret = nfc.felica_RequestService(1, serviceCodeList, returnKey); //Request the Service,
+
+
   #if defined(SERIAL_OUTPUT)
           Serial.println(WORD_FELICA_FOUND);
   #endif
@@ -287,10 +300,15 @@ void loop(void)
     //2.b State:LOCKER_OPENED
     //Active when the Locker is Opened
     case LOCKER_OPENED:
-      lcd.setCursor(0, 0);
-      lcd.print(WORD_NULL_LINE); //Clean the line
-      lcd.setCursor(0, 0);
-      lcd.print(WORD_LOCKER_DOOR_OPENED);
+      if(lcd_update_flag)
+      {
+        lcd.setCursor(0, 0);
+        lcd.print(WORD_NULL_LINE); //Clean the line
+        lcd.setCursor(0, 0);
+        lcd.print(WORD_LOCKER_DOOR_OPENED);
+        
+        lcd_update_flag = false;
+      }
 
 
       //TODO: Count opened time
@@ -310,10 +328,15 @@ void loop(void)
     break;
 
     case LOCKER_OPENING:
-      lcd.setCursor(0, 0);
-      lcd.print(WORD_NULL_LINE); //Clean the line
-      lcd.setCursor(0, 0);
-      lcd.print(WORD_LOCKER_DOOR_OPENING);
+      if(lcd_update_flag)
+      {
+        lcd.setCursor(0, 0);
+        lcd.print(WORD_NULL_LINE); //Clean the line
+        lcd.setCursor(0, 0);
+        lcd.print(WORD_LOCKER_DOOR_OPENING);
+
+        lcd_update_flag = false;
+      }
 
       open_door(); //Trigger Open door
 
@@ -330,10 +353,15 @@ void loop(void)
     break;
 
     case LOCKER_CLOSING:
-      lcd.setCursor(0, 0);
-      lcd.print(WORD_NULL_LINE); //Clean the line
-      lcd.setCursor(0, 0);
-      lcd.print(WORD_LOCKER_DOOR_CLOSING);
+      if(lcd_update_flag)
+      {
+        lcd.setCursor(0, 0);
+        lcd.print(WORD_NULL_LINE); //Clean the line
+        lcd.setCursor(0, 0);
+        lcd.print(WORD_LOCKER_DOOR_CLOSING);
+
+        lcd_update_flag = false;
+      }
 
       //
 
