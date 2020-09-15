@@ -26,6 +26,7 @@
 
 //Global variable Declaration
 State sys_state = LOCKER_CLOSED;
+State prev_sys_state;
 
 unsigned long card_read_prev_time = 0;
 
@@ -90,6 +91,12 @@ void open_door()
   // Timer4.start();
 
   door_ticker.start();
+}
+
+void transit_state(State in_state)
+{
+  prev_sys_state = sys_state;
+  sys_state = in_state;
 }
 
 //ISR Function
@@ -186,21 +193,21 @@ void setup(void)
 #if defined(SERIAL_OUTPUT)
   Serial.println(WORD_LOCKER_DOOR_OPENED);
 #endif
-    sys_state = LOCKER_OPENED;
+    transit_state(LOCKER_OPENED);
   }
   else
   {
 #if defined(SERIAL_OUTPUT)
   Serial.println(WORD_LOCKER_DOOR_CLOSED);
 #endif
-    sys_state = LOCKER_CLOSED;
+    transit_state(LOCKER_CLOSED);
   }
   */
 }
 
 void loop(void)
 {
-  //Update Ticker
+  //Update all Ticker
   door_ticker.update();
 
 
@@ -265,14 +272,14 @@ void loop(void)
       }
       */
           //If the card ID is match
-          sys_state = LOCKER_OPENING; //Transit the State to closed
+          transit_state(LOCKER_OPENING); //Transit the State to closed
       
           //After reading a NFC card
           ret = nfc.felica_Release(); 
         }
 
         //Update the last card reading time
-      card_read_prev_time = millis();
+        card_read_prev_time = millis();
       }   
     }
     break;
@@ -298,7 +305,7 @@ void loop(void)
         //turn off beep sound
 
 
-        sys_state = LOCKER_CLOSING; //Transit the State to closed
+        transit_state(LOCKER_CLOSING); //Transit the State to closed
       }
     break;
 
@@ -318,7 +325,7 @@ void loop(void)
     //   }
     //   else
     //   {
-        sys_state = LOCKER_OPENED;//Transit state to OPENED
+        transit_state(LOCKER_OPENED);//Transit state to OPENED
       // }
     break;
 
@@ -330,13 +337,13 @@ void loop(void)
 
       //
 
-      sys_state = LOCKER_CLOSED;//Transit state to CLOSED
+      transit_state(LOCKER_CLOSED);//Transit state to CLOSED
     break;
-  }
+  }//END-switch(sys_state), FSM
 
-  //Update time counter
-  
-}
+  //Post loop action
+
+}//END-loop()
 
 /*
 void loop2(void)
