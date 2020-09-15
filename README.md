@@ -98,7 +98,7 @@ I design a one-shot function that activates the lock at the beginning by pulling
 
 In the first implementation, I use Arduino Timer interrupt to fulfil the timing requirement. The function will pull down the power signal of the lock and the timer interrupt will call `Timer.stop()` to stop the timer itself. But some uncertain behaviours happen. For example, the timer interrupt is not executed some of the time.
 
-In the second implementation, I use [Ticker](https://github.com/sstaub/Ticker) rather than the hardware timer to doing the same thing. Ticker can activates the callback function after a certain period and limit the number of execution times of the function. But the disadvantage is that you cannot use delay() on the main loop() anymore. 
+In the second implementation, I use [Ticker](https://github.com/sstaub/Ticker) rather than the hardware timer to doing the same thing. Ticker can activate the callback function after a certain period and limit the number of execution times of the function. But the disadvantage is that you cannot use delay() on the main loop() anymore. 
 
 However, using delay() on the main loop() is not a good practice since it will slow down the whole execution flow of the program. Using millis() function with some conditional statement(if-else) to limit the execution frequency of the code fragment can provide a better result.
 
