@@ -86,10 +86,6 @@ void open_door()
 #endif
 
   digitalWrite(DOOR_LOCK_PIN, HIGH);//turn the power signal ON, Open the door
-  digitalWrite(LED_BUILTIN, HIGH);
-  // Timer4.initialize(1000*1000); //start timer, 100ms clock (100*1000)
-  // Timer4.attachInterrupt(isr_doorM); 
-  // Timer4.start();
 
   door_ticker.start();
 }
@@ -111,8 +107,6 @@ void isr_encoder() //A encoder ISR
 void isr_doorM() //A door management ISR
 {
   digitalWrite(DOOR_LOCK_PIN, LOW); //deactive the Power signal, turn it off
-  digitalWrite(LED_BUILTIN, LOW);
-  // Timer4.stop(); //Stop the timer itself
 }
 
 void setup(void)
