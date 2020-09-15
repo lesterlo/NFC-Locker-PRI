@@ -6,7 +6,7 @@
 #define WORD_LOCKER_DOOR_CLOSING    "Door Closing"
 
 #define WORD_NULL_LINE              "                    "
-#define WORD_NFC_WELLCOME           "Octopus Card Reader"
+#define WORD_NFC_WELLCOME           "NFC Locker"
 #define WORD_NFC_INI_ERROR          "No NFC Module"
 #define WORD_NFC_FOUND              "NFC Found: PN5"
 #define WORD_NFC_SHOW_FIRMWARE      "Firmware : "
