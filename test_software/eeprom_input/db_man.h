@@ -36,10 +36,13 @@ public:
     //Destructor
     ~DB_man();
     void init();
+    int sync_db();
+    int getCard(int, card_obj&); //Get from memory
+    int findCard(uint64_t);
+    int read_eeprom_entry(int, card_obj&);//Read the eeprom
     int write_entry(int, const card_obj&);
-    int read_entry(int, card_obj&);
     int read_all_entry(card_obj []);
  
 private:
-    
+    card_obj _card_table[MAX_STORE_ENTRY];
 };

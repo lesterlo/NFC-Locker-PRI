@@ -2,7 +2,7 @@
 
 DB_man::DB_man()
 {
-
+    sync_db();
 }
 
 DB_man::~DB_man()
@@ -18,12 +18,34 @@ void DB_man::init()
 
 }
 
-int DB_man::read_entry(int index, card_obj &cobj)
+int DB_man::sync_db()
+{
+    for (int i = 0; i < MAX_STORE_ENTRY; i++)
+    {
+        card_obj temp; 
+        read_eeprom_entry(i, temp);
+        memcpy(&temp, &_card_table[i], sizeof(card_obj));
+    }
+    return 0;
+}
+
+int DB_man::getCard(int index, card_obj &cobj)
 {
     if((index >= 0) && (index < MAX_STORE_ENTRY))
     {
-        int read_index = 0;
+        memcpy(&_card_table[index], &cobj, sizeof(card_obj));
+        return 0; //Read eeprom complete
+    }
+    else
+    {
+        return -1; //Wrong position index, return error
+    }
+}
 
+int DB_man::read_eeprom_entry(int index, card_obj &cobj)
+{
+    if((index >= 0) && (index < MAX_STORE_ENTRY))
+    {
         EEPROM.get(CARD_RECORD_START_ADDR+index*sizeof(card_obj), cobj);
         return 0; //Read eeprom complete
     }
@@ -37,9 +59,9 @@ int DB_man::write_entry(int index, const card_obj &cobj)
 {
     if((index >= 0) && (index < MAX_STORE_ENTRY))
     {
-        int read_index = 0;
-
         EEPROM.put(CARD_RECORD_START_ADDR+index*sizeof(card_obj), cobj);
+
+        sync_db();
         return 0; //Read eeprom complete
     }
     else

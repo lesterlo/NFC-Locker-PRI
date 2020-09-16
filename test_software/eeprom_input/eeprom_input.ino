@@ -9,7 +9,7 @@
 #include <PN532_debug.h>
 
 
-enum State{PRE_CMD, WAIT_CMD, INPUT_CARD, SHOW_INDIV_DATA, DUMP_ALL_DATA};
+enum State{PRE_CMD, WAIT_CMD, INPUT_CARD, SHOW_INDIV_DATA, DUMP_ALL_DATA, WRITE_DEMO_ENTRY};
 
 //Global items
 State sys_state = PRE_CMD;
@@ -28,6 +28,7 @@ void show_help()
     Serial.println("*  1. Input Identity                       *");
     Serial.println("*  2. View Identify                        *");
     Serial.println("*  3. Dump All Record                      *");
+    Serial.println("*  4. Write Demo                           *");
     Serial.println("*  8. Print Platform Data                  *");
     Serial.println("*  9. Show Help                            *");
     Serial.println("*                                          *");
@@ -113,6 +114,10 @@ void loop()
                         sys_state = DUMP_ALL_DATA;
                     break;
 
+                    case '4':
+                        sys_state = WRITE_DEMO_ENTRY;
+                    break;
+
                     case '8':
                         show_platform_data();
                         sys_state = PRE_CMD; 
@@ -141,7 +146,7 @@ void loop()
         {
             card_obj obj;
             String print_str;
-            db.read_entry(0, obj);
+            db.getCard(0, obj);
 
             Serial.print("Name:");Serial.println(obj.name);
             Serial.print("Card ID:");Serial.println(convBytesToString(obj.card_id.b8a, 8));
@@ -149,9 +154,30 @@ void loop()
         }
         break;
 
+        case WRITE_DEMO_ENTRY:
+        {
+            card_obj temp = {{0x12,0x34,0x45,0x78,0x92}, "Hello2"};
+            // temp.card_id.b64 = 0x23456789;
+            
+
+            Serial.println("Input Demo record");
+            Serial.print("Name:");Serial.println(temp.name);
+            Serial.print("Card ID:");Serial.println(convBytesToString(temp.card_id.b8a, 8));
+
+            //TODO: uncomment below before deploy
+            //db.write_entry(0, temp); 
+            sys_state = PRE_CMD;
+
+
+            Serial.println("Done!");
+        }
+        break;
+
         case DUMP_ALL_DATA:
+        {
             Serial.println("\nNot yet Implemented");
             sys_state = PRE_CMD;
+        }
         break;
     }
 }
