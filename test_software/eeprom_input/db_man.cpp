@@ -24,7 +24,7 @@ int DB_man::sync_db()
     {
         card_obj temp; 
         read_eeprom_entry(i, temp);
-        memcpy(&temp, &_card_table[i], sizeof(card_obj));
+        memcpy(_card_table+i*sizeof(card_obj), &temp, sizeof(card_obj));
     }
     return 0;
 }
@@ -44,8 +44,8 @@ int DB_man::getCard(int index, card_obj &cobj)
 {
     if((index >= 0) && (index < MAX_STORE_ENTRY))
     {
-        memcpy(&_card_table[index], &cobj, sizeof(card_obj));
-        return 0; //Read eeprom complete
+        memcpy(&cobj, _card_table+index*sizeof(card_obj), sizeof(card_obj));
+        return 0; //Read cache complete
     }
     else
     {

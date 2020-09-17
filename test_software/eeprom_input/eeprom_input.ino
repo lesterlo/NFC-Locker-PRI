@@ -12,7 +12,8 @@
 enum State{PRE_CMD, WAIT_CMD, 
 READ_NFC_CARD,
 PRE_INPUT_CARD, MAN_INPUT_CARD, POST_INPUT_CARD, 
-SHOW_INDIV_DATA, DUMP_ALL_DATA, WRITE_DEMO_ENTRY};
+PRE_SHOW_INDIV_DATA, POST_SHOW_INDIV_DATA, 
+DUMP_ALL_DATA, WRITE_DEMO_ENTRY};
 
 enum In_card_q{ICQ_NULL, PRE_ICQ_Q1, POST_ICQ_Q1, PRE_ICQ_Q2, POST_ICQ_Q2, PRE_ICQ_Q3, POST_ICQ_Q3, ICQ_DONE}; //Input Card Question
 
@@ -22,10 +23,11 @@ State sys_state = PRE_CMD;
 In_card_q icq_state = ICQ_NULL;
 
 //Input card question (ICQ) store variables
-String icq_input_str;
-String icq_input_cID;
+String icq_input_name;
 int icq_input_slot;
 uint8_t icq_card_idm[8];
+
+int scq_input_slot;
 
 DB_man db;
 
@@ -123,7 +125,7 @@ void loop()
                     break;
 
                     case '2':
-                        sys_state = SHOW_INDIV_DATA;
+                        sys_state = PRE_SHOW_INDIV_DATA;
                     break;
 
                     case '3':
@@ -160,7 +162,7 @@ void loop()
             {
                 case PRE_ICQ_Q1:
                     Serial.println("Welcome to input card mode");
-                    Serial.println("What is the name of card?");
+                    Serial.println("What is the name of card? (Max Length=10)");
                     Serial.print("Name> ");
 
                     icq_state = POST_ICQ_Q1;
@@ -171,8 +173,9 @@ void loop()
                 case POST_ICQ_Q1:
                     if(Serial.available() > 0)
                     {   
-                        icq_input_str = Serial.readString();
-                        Serial.println("\nYour Input Name is \""+icq_input_str+"\"");
+                        icq_input_name = Serial.readString();
+                        icq_input_name = icq_input_name.substring(0,9);
+                        Serial.println("\nYour Input Name is \""+icq_input_name+"\"");
 
                         icq_state = PRE_ICQ_Q2;
                     }
@@ -221,7 +224,7 @@ void loop()
                         {
                             case '1':
                                 sys_state = READ_NFC_CARD;
-                                Serial.print("Please Tap your card to");
+                                Serial.println("Please Tap your card to the card reader");
                             break;
 
                             case '2':
@@ -267,7 +270,7 @@ void loop()
 
                     Serial.println("\nYour Card ID is \""+convBytesToString(idm, 8)+"\"");
 
-                    memcpy(idm, icq_card_idm, 8);
+                    memcpy(icq_card_idm, idm, 8*sizeof(uint8_t));
 
                     sys_state = POST_INPUT_CARD;
                 }
@@ -284,28 +287,60 @@ void loop()
         break;
 
         case POST_INPUT_CARD:
-            Serial.println
+            Serial.println("You Input data is:");
+            Serial.println("Name: "+ icq_input_name);
+            Serial.print("Slot: "); Serial.println(icq_input_slot);
+            Serial.println("Card ID: "+convBytesToString(icq_card_idm,8));
+
+            card_obj temp_obj;
+            memcpy(temp_obj.card_id.b8a, icq_card_idm, 8);
+            memcpy(temp_obj.name, icq_input_name.c_str(), icq_input_name.length());
+
+            db.write_entry(icq_input_slot, temp_obj);
+
+            //Clean variable
+            icq_state = ICQ_NULL;
+            icq_input_name = "";
+            icq_input_slot = -1;
+            memset(icq_card_idm, 0, 8);
+            
             sys_state = PRE_CMD;
         break;
 
-        case SHOW_INDIV_DATA:
+        case PRE_SHOW_INDIV_DATA:
         {
-            card_obj obj;
-            String print_str;
-            db.getCard(0, obj);
+            Serial.println("Which slot you want to show? (0-9)");
+            Serial.print("Slot> ");
 
-            Serial.print("Name:");Serial.println(obj.name);
-            Serial.print("Card ID:");Serial.println(convBytesToString(obj.card_id.b8a, 8));
-            sys_state = PRE_CMD;
+            sys_state = POST_SHOW_INDIV_DATA;
+        }
+        break;
+        case POST_SHOW_INDIV_DATA:  
+        {
+            if(Serial.available() > 0)
+            {   
+
+                scq_input_slot = Serial.readString().toInt();
+                Serial.print("\nYour selected slot is \"");
+                Serial.print(scq_input_slot);
+                Serial.println("\"");
+
+                card_obj obj;
+                // db.getCard(scq_input_slot, obj); //May
+                db.read_eeprom_entry(scq_input_slot, obj); //Direct read the eeprom
+
+                Serial.println("query result:");
+                Serial.print("Name:");Serial.println(obj.name);
+                Serial.print("Card ID:");Serial.println(convBytesToString(obj.card_id.b8a, 8));
+                sys_state = PRE_CMD;
+            }
         }
         break;
 
         case WRITE_DEMO_ENTRY:
         {
             card_obj temp = {{0x12,0x34,0x45,0x78,0x92}, "Hello2"};
-            // temp.card_id.b64 = 0x23456789;
             
-
             Serial.println("Input Demo record");
             Serial.print("Name:");Serial.println(temp.name);
             Serial.print("Card ID:");Serial.println(convBytesToString(temp.card_id.b8a, 8));
