@@ -13,6 +13,7 @@
 #include "program_setting.h"
 #include "octopus_setting.h"
 #include "message_data.h"
+#include "db_man.h"
 
 #include <Wire.h> 
 #include <LiquidCrystal_I2C.h>
@@ -31,10 +32,13 @@ bool lcd_update_flag = true;
 
 unsigned long card_read_prev_time = 0;
 
+DB_man db;
 
 void isr_doorM();
+void isr_offTone();
 //Ticker
 Ticker door_ticker(isr_doorM, 100, 1, MILLIS);
+Ticker card_nf_ticker(isr_offTone, 1000, 1, MILLIS);
 
 // NFC Declaration
 PN532_I2C pn532i2c(Wire);
@@ -51,22 +55,7 @@ uint8_t        _prevIDm[8];
 unsigned long  _prevTime;
 
 //Useful Fuction
-String convByteToString(const uint8_t* data, uint8_t length)
-{
-  String return_value;
-  for(int i=0; i< length; i++)
-  {
-    if (data[i] < 0x10) 
-    {
-      return_value+="0"+String(data[i], HEX);
-    } 
-    else 
-    {
-      return_value+=String(data[i], HEX);
-    }
-  }
-  return return_value;
-}
+
 
 //Helper Function
 bool check_door()
@@ -107,6 +96,10 @@ void isr_encoder() //A encoder ISR
 void isr_doorM() //A door management ISR
 {
   digitalWrite(DOOR_LOCK_PIN, LOW); //deactive the Power signal, turn it off
+}
+void isr_offTone()
+{
+  noTone(BUZZER_PIN);//Turn off the tone
 }
 
 void setup(void)
@@ -207,7 +200,7 @@ void loop(void)
 {
   //Update all Ticker
   door_ticker.update();
-
+  card_nf_ticker.update();
 
   //Setup variable
 
@@ -262,25 +255,32 @@ void loop(void)
   #if defined(SERIAL_OUTPUT)
           Serial.println(WORD_FELICA_FOUND);
   #endif
-
-          /*
-          //Find Same card id
-      if ( memcmp(idm, _prevIDm, 8) == 0 ) 
-      {
-          //Not yet timeout, then skip processing
-          if ( (millis() - _prevTime) < OCTOPUS_SAME_CARD_TIMEOUT ) 
+          card_id_t q_id;
+          memcpy(q_id.b8a, idm, 8*sizeof(uint8_t));
+          int check_card = db.findCard(q_id);
+          if(check_card == -1)
           {
-  #if defined(SERIAL_OUTPUT)
-          Serial.println(WORD_FELICA_SAME);
-  #endif
-          delay(500);
-          return;
+            //Not match
+            lcd.setCursor(0, 1);
+            lcd.print(WORD_NULL_LINE); //Clean the line
+            lcd.setCursor(0, 1);
+            lcd.print(WORD_WRONG_CARD);
+            
+            tone(BUZZER_PIN, 1000, 0);
+            card_nf_ticker.start();
           }
-      }
-      */
-          //If the card ID is match
-          transit_state(LOCKER_OPENING); //Transit the State to closed
-      
+          else
+          {
+            //If the card ID is match
+
+            lcd.setCursor(0, 1);
+            lcd.print(WORD_NULL_LINE); //Clean the line
+            lcd.setCursor(0, 1);
+            lcd.print(WORD_TRUE_CARD);
+  
+            transit_state(LOCKER_OPENING); //Transit the State to closed
+          }
+          
           //After reading a NFC card
           ret = nfc.felica_Release(); 
         }

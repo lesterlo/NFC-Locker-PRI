@@ -4,6 +4,8 @@
 #define WORD_LOCKER_DOOR_CLOSED     "Door Closed"
 #define WORD_LOCKER_DOOR_OPENING    "Door Opening"
 #define WORD_LOCKER_DOOR_CLOSING    "Door Closing"
+#define WORD_WRONG_CARD             "Wrong Card"
+#define WORD_TRUE_CARD              "True Card"
 
 #define WORD_NULL_LINE              "                    "
 #define WORD_NFC_WELLCOME           "NFC Locker"
