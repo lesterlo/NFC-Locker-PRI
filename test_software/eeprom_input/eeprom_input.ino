@@ -326,8 +326,7 @@ void loop()
                 Serial.println("\"");
 
                 card_obj obj;
-                // db.getCard(scq_input_slot, obj); //May
-                db.read_eeprom_entry(scq_input_slot, obj); //Direct read the eeprom
+                db.getCard(scq_input_slot, obj);
 
                 Serial.println("query result:");
                 Serial.print("Name:");Serial.println(obj.name);
