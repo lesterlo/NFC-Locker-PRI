@@ -29,6 +29,17 @@ int DB_man::sync_db()
     return 0;
 }
 
+int DB_man::findCard(card_id_t in_card)
+{
+    for(int i=0; i < MAX_STORE_ENTRY; i++)
+    {
+        if(_card_table[i].card_id.b64 == in_card.b64)
+            return 1;
+        
+    }
+    return 0;
+}
+
 int DB_man::getCard(int index, card_obj &cobj)
 {
     if((index >= 0) && (index < MAX_STORE_ENTRY))

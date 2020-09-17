@@ -9,15 +9,30 @@
 #include <PN532_debug.h>
 
 
-enum State{PRE_CMD, WAIT_CMD, INPUT_CARD, SHOW_INDIV_DATA, DUMP_ALL_DATA, WRITE_DEMO_ENTRY};
+enum State{PRE_CMD, WAIT_CMD, 
+READ_NFC_CARD,
+PRE_INPUT_CARD, MAN_INPUT_CARD, POST_INPUT_CARD, 
+SHOW_INDIV_DATA, DUMP_ALL_DATA, WRITE_DEMO_ENTRY};
+
+enum In_card_q{ICQ_NULL, PRE_ICQ_Q1, POST_ICQ_Q1, PRE_ICQ_Q2, POST_ICQ_Q2, PRE_ICQ_Q3, POST_ICQ_Q3, ICQ_DONE}; //Input Card Question
 
 //Global items
 State sys_state = PRE_CMD;
+
+In_card_q icq_state = ICQ_NULL;
+
+//Input card question (ICQ) store variables
+String icq_input_str;
+String icq_input_cID;
+int icq_input_slot;
+uint8_t icq_card_idm[8];
 
 DB_man db;
 
 PN532_I2C pn532i2c(Wire);
 PN532 nfc(pn532i2c);
+unsigned long card_read_prev_time;
+
 
 void show_help()
 {
@@ -103,7 +118,8 @@ void loop()
                 switch(input_cmd)
                 {
                     case '1':
-                        sys_state = INPUT_CARD;
+                        icq_state = PRE_ICQ_Q1;
+                        sys_state = PRE_INPUT_CARD;
                     break;
 
                     case '2':
@@ -138,7 +154,137 @@ void loop()
         }
         break;
 
-        case INPUT_CARD:
+        case PRE_INPUT_CARD:
+
+            switch (icq_state)
+            {
+                case PRE_ICQ_Q1:
+                    Serial.println("Welcome to input card mode");
+                    Serial.println("What is the name of card?");
+                    Serial.print("Name> ");
+
+                    icq_state = POST_ICQ_Q1;
+
+
+                break;
+                    
+                case POST_ICQ_Q1:
+                    if(Serial.available() > 0)
+                    {   
+                        icq_input_str = Serial.readString();
+                        Serial.println("\nYour Input Name is \""+icq_input_str+"\"");
+
+                        icq_state = PRE_ICQ_Q2;
+                    }
+                    break;
+                break;
+
+                case PRE_ICQ_Q2:
+                    Serial.println("What slot you want to Save? (0-9)");
+                    Serial.print("Slot> ");
+
+                    icq_state = POST_ICQ_Q2;
+                break;
+                    
+                case POST_ICQ_Q2:
+                    if(Serial.available() > 0)
+                    {   
+
+                        icq_input_slot = Serial.readString().toInt();
+                        Serial.print("\nYour selected slot is \"");
+                        Serial.print(icq_input_slot);
+                        Serial.println("\"");
+
+                        icq_state = PRE_ICQ_Q3;
+                    }
+                    break;
+                break;
+                
+                case PRE_ICQ_Q3:
+                    Serial.println("\nHow to Input Card ID?");
+                    Serial.println("(1) Card Reader? / (2) Manuel Input?");
+                    Serial.print("CMD> ");
+
+                    icq_state = POST_ICQ_Q3;                  
+                    break;
+
+                
+
+                case POST_ICQ_Q3:
+                    if(Serial.available() > 0)
+                    {   
+                        String temp;
+                        temp = Serial.readString();
+                        Serial.println("\nYour  selection is \""+temp+"\"");
+
+                        switch(temp.charAt(0))
+                        {
+                            case '1':
+                                sys_state = READ_NFC_CARD;
+                                Serial.print("Please Tap your card to");
+                            break;
+
+                            case '2':
+                                sys_state = MAN_INPUT_CARD;
+                            break;
+                        }
+                    }
+                    
+                break;
+
+                default:
+                    break;
+            }
+            
+            
+            
+        break;
+
+        case READ_NFC_CARD:
+        {
+            if((millis() - card_read_prev_time) > OCTOPUS_PROCESSING_INTERVAL)
+            {
+                uint8_t ret;
+                uint16_t systemCode = OCTOPUS_SYSTEM_CODE;
+                uint8_t requestCode = OCTOPUS_REQUEST_CODE;       // System Code request
+                uint8_t idm[8];
+                uint8_t pmm[8];
+                uint16_t systemCodeResponse;
+                //Read NFC tag
+                ret = nfc.felica_Polling(systemCode, requestCode, idm, pmm, &systemCodeResponse, 5000); 
+
+                //Found an Octopus Card
+                if (ret == 1)
+                {
+                    //Send a request to end the apple pay card reading
+                    uint16_t serviceCodeList[1];
+                    uint16_t returnKey[1];
+                    uint16_t blockList[1];
+                    serviceCodeList[0]=OCTOPUS_BALANCE_SERVICE_CODE;
+                    blockList[0] = OCTOPUS_BALANCE_SERVICE_BLOCK;
+                    ret = nfc.felica_RequestService(1, serviceCodeList, returnKey); //Request the Service
+                    nfc.felica_Release();
+
+                    Serial.println("\nYour Card ID is \""+convBytesToString(idm, 8)+"\"");
+
+                    memcpy(idm, icq_card_idm, 8);
+
+                    sys_state = POST_INPUT_CARD;
+                }
+                card_read_prev_time = millis();
+            }
+            
+        }
+        break;
+
+        case MAN_INPUT_CARD:
+            Serial.println("Function NOT yet Implemented");
+            sys_state = PRE_CMD;
+            // sys_state = POST_INPUT_CARD;
+        break;
+
+        case POST_INPUT_CARD:
+            Serial.println
             sys_state = PRE_CMD;
         break;
 
