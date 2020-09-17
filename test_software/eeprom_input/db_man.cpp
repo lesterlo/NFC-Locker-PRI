@@ -33,11 +33,10 @@ int DB_man::findCard(card_id_t in_card)
 {
     for(int i=0; i < MAX_STORE_ENTRY; i++)
     {
-        if(_card_table[i].card_id.b64 == in_card.b64)
-            return 1;
-        
+        if(memcmp((_card_table+i*sizeof(card_obj))->card_id.b8a, in_card.b8a, 8*sizeof(uint8_t)) == 0)
+            return i; //return the position   
     }
-    return 0;
+    return -1;
 }
 
 int DB_man::getCard(int index, card_obj &cobj)

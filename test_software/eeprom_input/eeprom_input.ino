@@ -13,6 +13,8 @@ enum State{PRE_CMD, WAIT_CMD,
 READ_NFC_CARD,
 PRE_INPUT_CARD, MAN_INPUT_CARD, POST_INPUT_CARD, 
 PRE_SHOW_INDIV_DATA, POST_SHOW_INDIV_DATA, 
+PRE_FIND_CARD, NFC_FIND_CARD, POST_FIND_CARD,
+PRE_ERASE_RED, POST_ERASE_RED,
 DUMP_ALL_DATA, WRITE_DEMO_ENTRY};
 
 enum In_card_q{ICQ_NULL, PRE_ICQ_Q1, POST_ICQ_Q1, PRE_ICQ_Q2, POST_ICQ_Q2, PRE_ICQ_Q3, POST_ICQ_Q3, ICQ_DONE}; //Input Card Question
@@ -44,8 +46,9 @@ void show_help()
     Serial.println("*                                          *");
     Serial.println("*  1. Input Identity                       *");
     Serial.println("*  2. View Identify                        *");
-    Serial.println("*  3. Dump All Record                      *");
-    Serial.println("*  4. Write Demo                           *");
+    Serial.println("*  3. Find Identify                        *");
+    Serial.println("*  4. Dump All Record                      *");
+    Serial.println("*  7. Erase record                         *");
     Serial.println("*  8. Print Platform Data                  *");
     Serial.println("*  9. Show Help                            *");
     Serial.println("*                                          *");
@@ -129,11 +132,15 @@ void loop()
                     break;
 
                     case '3':
-                        sys_state = DUMP_ALL_DATA;
+                        sys_state = PRE_FIND_CARD;
                     break;
 
                     case '4':
-                        sys_state = WRITE_DEMO_ENTRY;
+                        sys_state = DUMP_ALL_DATA;
+                    break;
+
+                    case '7':
+                        sys_state =PRE_ERASE_RED;
                     break;
 
                     case '8':
@@ -175,6 +182,9 @@ void loop()
                     {   
                         icq_input_name = Serial.readString();
                         icq_input_name = icq_input_name.substring(0,9);
+                        
+                        //TODO: Fix name width to 10 (0-9), if length < 9, fill 0 behind
+                        
                         Serial.println("\nYour Input Name is \""+icq_input_name+"\"");
 
                         icq_state = PRE_ICQ_Q2;
@@ -315,6 +325,7 @@ void loop()
             sys_state = POST_SHOW_INDIV_DATA;
         }
         break;
+
         case POST_SHOW_INDIV_DATA:  
         {
             if(Serial.available() > 0)
@@ -336,20 +347,98 @@ void loop()
         }
         break;
 
-        case WRITE_DEMO_ENTRY:
+        case PRE_FIND_CARD:
         {
-            card_obj temp = {{0x12,0x34,0x45,0x78,0x92}, "Hello2"};
+            Serial.println("\nPlease Tap your card to the card reader");
+            sys_state = NFC_FIND_CARD;
+        }
+        break;
+
+        case NFC_FIND_CARD:
+        {
+            if((millis() - card_read_prev_time) > OCTOPUS_PROCESSING_INTERVAL)
+            {
+                uint8_t ret;
+                uint16_t systemCode = OCTOPUS_SYSTEM_CODE;
+                uint8_t requestCode = OCTOPUS_REQUEST_CODE;       // System Code request
+                uint8_t idm[8];
+                uint8_t pmm[8];
+                uint16_t systemCodeResponse;
+                //Read NFC tag
+                ret = nfc.felica_Polling(systemCode, requestCode, idm, pmm, &systemCodeResponse, 5000); 
+
+                //Found an Octopus Card
+                if (ret == 1)
+                {
+                    //Send a request to end the apple pay card reading
+                    uint16_t serviceCodeList[1];
+                    uint16_t returnKey[1];
+                    uint16_t blockList[1];
+                    serviceCodeList[0]=OCTOPUS_BALANCE_SERVICE_CODE;
+                    blockList[0] = OCTOPUS_BALANCE_SERVICE_BLOCK;
+                    ret = nfc.felica_RequestService(1, serviceCodeList, returnKey); //Request the Service
+                    nfc.felica_Release();
+
+                    Serial.println("\nYour Card ID is \""+convBytesToString(idm, 8)+"\"");
+
+                    
+                    card_id_t query;
+                    memcpy(query.b8a, idm, 8*sizeof(uint8_t));
+                    Serial.println("\nCP Card ID is \""+convBytesToString(query.b8a, 8)+"\"");
+
+                    int pos = db.findCard(query);
+
+                    if(pos != -1)
+                    {
+                        Serial.print("Card found at ");Serial.println(pos);
+                    }
+                    else
+                    {
+                        Serial.println("Card Not Found");
+                    }
+                    
+
+                    sys_state = PRE_CMD;
+                }
+                card_read_prev_time = millis();
+            }
+        }
+        break;
+
+        case PRE_ERASE_RED:
+        {
+            Serial.print("Which record you want to erase? (0-9)");
+            sys_state = POST_ERASE_RED;
+        }
+        break;
+
+        case POST_ERASE_RED:
+        {
+
+            if(Serial.available() > 0)
+            {
+                int position = Serial.readString().toInt();
+                if((position >=0) && (position < MAX_STORE_ENTRY))
+                {
+                    Serial.print("\nYour selected \"");
+                    Serial.print(position);
+                    Serial.println("\" for erase.");
+
+                    card_obj temp = {{0xff,0x00,0xee,0x11,0xdd}, "          "};
             
-            Serial.println("Input Demo record");
-            Serial.print("Name:");Serial.println(temp.name);
-            Serial.print("Card ID:");Serial.println(convBytesToString(temp.card_id.b8a, 8));
+                    db.write_entry(position, temp); 
+                    
 
-            //TODO: uncomment below before deploy
-            //db.write_entry(0, temp); 
-            sys_state = PRE_CMD;
-
-
-            Serial.println("Done!");
+                    Serial.println("Done!");
+                }
+                else
+                {
+                    Serial.print(position);
+                    Serial.println(" is a invalid position");
+                }
+                
+                sys_state = PRE_CMD;
+            } 
         }
         break;
 
