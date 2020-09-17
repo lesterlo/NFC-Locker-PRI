@@ -174,8 +174,6 @@ void setup(void)
   //Clean the display
   lcd.clear();
 
-/* TODO: Disable this to bypass the state checking on startup
-  uncommnet it after testing
 
   //Update the locker State on startup
   //Closed? opened?
@@ -193,7 +191,7 @@ void setup(void)
 #endif
     transit_state(LOCKER_CLOSED);
   }
-  */
+
 }
 
 void loop(void)
